@@ -1,11 +1,11 @@
 {
-  "name": "ANG Documenti Cantieri",
-  "short_name": "ANG Docs",
-  "description": "Gestione documentale per cantieri fotovoltaici",
+  "name": "ANG DL",
+  "short_name": "ANG DL",
+  "description": "Documenti e sopralluoghi cantieri fotovoltaici",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#0f0f0f",
+  "background_color": "#1d3a6b",
+  "theme_color": "#0a1628",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
