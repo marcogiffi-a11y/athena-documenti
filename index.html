@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a1628" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ANG Docs" />
+  <title>ANG Documenti Cantieri</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#1d3a6b;
+      --bg:#0a1628;
+      --bg2:#0f2040;
+      --bg3:#163058;
+      --border:#1e3a6e;
+      --green:#6ab826;
+      --green-dim:#3d6a12;
+      --green-pale:#0d2208;
+      --text:#ddeaff;
+      --muted:#5d80b0;
+      --danger:#ef4444;
+      --radius:10px;
+      --font-head:'Oswald',sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+      --font-body:'Barlow',sans-serif;
+    }
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+    #root{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+    button{font-family:var(--font-body);cursor:pointer;border:none;background:none;color:inherit}
+    input,textarea,select{font-family:var(--font-body)}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .fade-up{animation:fadeUp .32s ease both}
+    .spin{animation:spin .8s linear infinite}
+
+    /* LOGIN */
+    .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;gap:36px;background:var(--bg)}
+    .login-logo{display:flex;flex-direction:column;align-items:center;gap:10px}
+    .icon-wrap{width:78px;height:78px;border-radius:20px;background:var(--navy);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:2px}
+    .brand{font-family:var(--font-head);font-size:26px;font-weight:700;letter-spacing:5px;color:var(--text)}
+    .brand span{color:var(--green)}
+    .brand-sub{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+    .login-tabs{display:flex;background:var(--bg2);border-radius:8px;padding:4px;width:100%;max-width:320px}
+    .login-tab{flex:1;padding:8px;text-align:center;border-radius:6px;font-size:13px;font-weight:500;letter-spacing:.5px;cursor:pointer;transition:all .2s;color:var(--muted)}
+    .login-tab.active{background:var(--navy);color:var(--green);font-weight:700;border:1px solid var(--green-dim)}
+    .login-form{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px}
+    .inp-wrap{display:flex;flex-direction:column;gap:6px}
+    .inp-wrap label{font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;font-family:var(--font-mono)}
+    .inp-wrap input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font-size:16px;color:var(--text);outline:none;transition:border-color .2s;letter-spacing:1px}
+    .inp-wrap input:focus{border-color:var(--green)}
+    .inp-wrap input::placeholder{color:var(--muted);letter-spacing:0}
+    .btn-primary{background:var(--green);color:#fff;font-weight:700;font-family:var(--font-head);letter-spacing:2px;font-size:15px;padding:16px;border-radius:var(--radius);width:100%;text-transform:uppercase;transition:opacity .2s,transform .1s}
+    .btn-primary:active{opacity:.85;transform:scale(.98)}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+    .error-msg{background:#1a0505;border:1px solid #7f1d1d;border-radius:8px;padding:12px 16px;font-size:13px;color:#fca5a5}
+
+    /* HEADER */
+    .header{background:var(--navy);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;flex-shrink:0}
+    .header-back{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg3);font-size:18px;color:var(--green);flex-shrink:0;border:none;cursor:pointer}
+    .header-title{font-family:var(--font-head);font-size:17px;font-weight:600;letter-spacing:1px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+    .header-badge{background:var(--green);color:#fff;font-size:10px;font-weight:700;font-family:var(--font-mono);padding:3px 8px;border-radius:4px;letter-spacing:1px;flex-shrink:0}
+
+    /* MAIN */
+    .main{flex:1;overflow-y:auto;padding-bottom:80px;background:var(--bg)}
+    .section-head{padding:18px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+    .section-title{font-family:var(--font-head);font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+    .section-count{font-family:var(--font-mono);font-size:12px;color:var(--green)}
+    .search-bar{margin:12px 16px 4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:10px;padding:0 14px}
+    .search-bar input{background:none;border:none;outline:none;color:var(--text);font-size:15px;padding:12px 0;flex:1}
+    .search-bar input::placeholder{color:var(--muted)}
+    .search-bar .icon{color:var(--muted);font-size:15px}
+
+    /* CANTIERE CARD */
+    .cantiere-card{margin:0 16px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:border-color .2s,background .15s;display:flex;align-items:center;gap:14px}
+    .cantiere-card:active{background:var(--bg3);border-color:var(--green-dim)}
+    .cantiere-icon{width:44px;height:44px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .cantiere-info{flex:1;min-width:0}
+    .cantiere-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+    .cantiere-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+    .meta-chip{font-family:var(--font-mono);font-size:10px;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:2px 7px;border-radius:4px}
+    .meta-chip.green{color:var(--green);border-color:var(--green-dim);background:var(--green-pale)}
+    .cantiere-arrow{color:var(--muted);font-size:18px}
+    .doc-count-badge{background:var(--green-pale);border:1px solid var(--green-dim);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap}
+
+    /* FASE TABS */
+    .fase-nav{display:flex;padding:14px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
+    .fase-nav::-webkit-scrollbar{display:none}
+    .fase-tab{font-family:var(--font-head);font-size:12px;letter-spacing:1px;padding:8px 14px;border-radius:6px 6px 0 0;cursor:pointer;white-space:nowrap;color:var(--muted);border:1px solid transparent;border-bottom:none;transition:all .2s;flex-shrink:0;text-transform:uppercase;background:none}
+    .fase-tab.active{background:var(--bg2);color:var(--green);border-color:var(--border)}
+    .fase-body{margin:0 16px;background:var(--bg2);border:1px solid var(--border);border-radius:0 var(--radius) var(--radius) var(--radius);min-height:200px;padding:14px}
+
+    /* DOC ITEM */
+    .doc-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;transition:border-color .2s}
+    .doc-item:active{border-color:var(--green-dim)}
+    .doc-thumb{width:46px;height:46px;border-radius:6px;background:var(--navy);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden}
+    .doc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:6px}
+    .doc-info{flex:1;min-width:0}
+    .doc-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+    .doc-sub{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:3px}
+    .doc-actions{display:flex;gap:6px}
+    .doc-btn{width:32px;height:32px;border-radius:6px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);flex-shrink:0;border:none;cursor:pointer}
+    .doc-btn:active{background:var(--border)}
+    .empty-state{text-align:center;padding:40px 20px}
+    .empty-state .icon{font-size:36px;margin-bottom:10px;opacity:.3}
+    .empty-state p{color:var(--muted);font-size:13px;line-height:1.6}
+
+    /* FAB */
+    .fab{position:fixed;bottom:88px;right:24px;width:56px;height:56px;border-radius:16px;background:var(--green);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(106,184,38,.3);z-index:100;transition:transform .15s;border:none;cursor:pointer}
+    .fab:active{transform:scale(.92)}
+
+    /* BOTTOM NAV */
+    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--navy);border-top:1px solid var(--border);display:flex;padding:8px 0;z-index:200}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--muted);transition:color .2s}
+    .nav-item.active{color:var(--green)}
+    .nav-icon{font-size:20px}
+    .nav-label{font-size:10px;letter-spacing:.5px;font-family:var(--font-mono)}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
+    .modal-sheet{background:var(--bg2);border-radius:20px 20px 0 0;border-top:1px solid var(--border);width:100%;max-width:480px;padding:20px 20px 40px;animation:slideUp .3s ease;max-height:90vh;overflow-y:auto}
+    .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+    .modal-title{font-family:var(--font-head);font-size:20px;font-weight:600;letter-spacing:1px;margin-bottom:4px;color:var(--text)}
+    .modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+    .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .upload-opt{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .2s;text-align:center}
+    .upload-opt:active{border-color:var(--green);background:var(--green-pale)}
+    .upload-opt .opt-icon{font-size:26px}
+    .upload-opt .opt-label{font-family:var(--font-head);font-size:13px;font-weight:600;letter-spacing:1px;color:var(--text)}
+    .upload-opt .opt-sub{font-size:11px;color:var(--muted)}
+    .upload-opt.full-width{grid-column:1/-1;flex-direction:row;gap:14px;text-align:left;padding:16px}
+    .inp-select,.inp-text{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;color:var(--text);font-size:14px;width:100%;outline:none}
+    .inp-select:focus,.inp-text:focus{border-color:var(--green)}
+
+    /* SCAN */
+    .scan-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+    .scan-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);position:relative}
+    .scan-thumb img{width:100%;height:100%;object-fit:cover}
+    .scan-thumb .del-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.75);color:#ef4444;font-size:11px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer}
+    .scan-add{aspect-ratio:1;border-radius:8px;border:1.5px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:11px;cursor:pointer;background:none}
+    .scan-add .plus{font-size:22px;color:var(--green)}
+
+    /* MISC */
+    .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 20px}
+    .loader{width:30px;height:30px;border:2.5px solid var(--border);border-top-color:var(--green);border-radius:50%}
+    .progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:12px}
+    .progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s ease}
+    .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:14px;font-weight:500;z-index:400;white-space:nowrap;animation:toastIn .3s ease both;color:var(--text)}
+    .toast.success{border-color:var(--green-dim);background:var(--green-pale);color:var(--green)}
+    .toast.error{border-color:#7f1d1d;background:#1a0505;color:#fca5a5}
+    .viewer-overlay{position:fixed;inset:0;background:#000;z-index:500;display:flex;flex-direction:column}
+    .viewer-header{padding:14px 16px;display:flex;align-items:center;gap:12px;background:rgba(10,22,40,.9)}
+    .viewer-close{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:none;cursor:pointer}
+    .viewer-title{color:#fff;font-weight:500;flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .viewer-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .viewer-body img{max-width:100%;max-height:100%;object-fit:contain}
+    .viewer-body iframe{width:100%;height:100%;border:none}
+    .add-btn{margin:8px 16px 20px;background:var(--bg2);border:1.5px dashed var(--border);border-radius:var(--radius);padding:14px;color:var(--green);font-family:var(--font-head);font-size:14px;letter-spacing:1px;width:calc(100% - 32px);text-align:center;cursor:pointer;transition:background .15s}
+    .add-btn:active{background:var(--green-pale)}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { jsPDF } = window.jspdf;
+const SUPABASE_URL = 'https://bfcfgxpkwmlhvjhegmxv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmY2ZneHBrd21saHZqaGVnbXh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyOTM5NzIsImV4cCI6MjA5Mjg2OTk3Mn0.PbwbpCklqiZv_rrsCjATxc56rNCNy_s-cXSideAMY0Y';
+const ADMIN_PIN = '1507';
+const BUCKET = 'Documenti';
+const FASI = ['Progettazione','Autorizzazioni','Installazione','Collaudo'];
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function Toast({ msg, type, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, []);
+  return <div className={`toast ${type}`}>{msg}</div>;
+}
+
+function Login({ onLogin }) {
+  const [tab, setTab] = useState('admin');
+  const [pin, setPin] = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  async function handleLogin(e) {
+    e.preventDefault(); setLoading(true); setErr('');
+    try {
+      if (tab === 'admin') {
+        if (pin === ADMIN_PIN) { onLogin({ role: 'admin' }); return; }
+        setErr('PIN non valido');
+      } else {
+        const upper = code.trim().toUpperCase();
+        const { data, error } = await supabase.from('squadre').select('*').eq('codice', upper).single();
+        if (error || !data) { setErr('Codice squadra non trovato'); return; }
+        onLogin({ role: 'squadra', squadra: data });
+      }
+    } catch { setErr('Errore di connessione'); }
+    finally { setLoading(false); }
+  }
+  return (
+    <div className="login-wrap">
+      <div className="login-logo fade-up">
+        <div className="icon-wrap">🌿</div>
+        <div className="brand">ATHENA <span>Next Gen</span></div>
+        <div className="brand-sub">Documenti Cantieri</div>
+      </div>
+      <div className="login-tabs fade-up" style={{animationDelay:'.07s'}}>
+        {['admin','squadra'].map(t => (
+          <div key={t} className={`login-tab ${tab===t?'active':''}`} onClick={()=>{setTab(t);setErr('');}}>
+            {t==='admin'?'👤 Admin':'👷 Squadra'}
+          </div>
+        ))}
+      </div>
+      <form className="login-form fade-up" style={{animationDelay:'.14s'}} onSubmit={handleLogin}>
+        {tab==='admin' ? (
+          <div className="inp-wrap">
+            <label>PIN Admin</label>
+            <input type="password" inputMode="numeric" placeholder="••••" value={pin} onChange={e=>setPin(e.target.value)} autoFocus />
+          </div>
+        ) : (
+          <div className="inp-wrap">
+            <label>Codice Squadra</label>
+            <input type="text" placeholder="ANG-XXXX" value={code} onChange={e=>setCode(e.target.value)} autoCapitalize="characters" autoFocus />
+          </div>
+        )}
+        {err && <div className="error-msg">⚠️ {err}</div>}
+        <button type="submit" className="btn-primary" disabled={loading}>{loading?'⏳ ACCESSO...':'→ ACCEDI'}</button>
+      </form>
+    </div>
+  );
+}
+
+function CantiereLista({ session, onSelect }) {
+  const [cantieri, setCantieri] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [docCounts, setDocCounts] = useState({});
+  const [showAdd, setShowAdd] = useState(false);
+  useEffect(() => { fetchCantieri(); }, []);
+  async function fetchCantieri() {
+    setLoading(true);
+    let q = supabase.from('cantieri').select('*').order('created_at', { ascending: false });
+    if (session.role === 'squadra') {
+      const { data: asgn } = await supabase.from('assegnazioni_cantieri').select('cantiere_id').eq('squadra_id', session.squadra.id);
+      if (asgn?.length) { q = q.in('id', asgn.map(a => a.cantiere_id)); }
+      else { setCantieri([]); setLoading(false); return; }
+    }
+    const { data } = await q;
+    if (data) { setCantieri(data); fetchDocCounts(data.map(c => c.id)); }
+    setLoading(false);
+  }
+  async function fetchDocCounts(ids) {
+    const { data } = await supabase.from('documenti_cantiere').select('cantiere_id').in('cantiere_id', ids);
+    if (data) {
+      const counts = {};
+      data.forEach(d => { counts[d.cantiere_id] = (counts[d.cantiere_id] || 0) + 1; });
+      setDocCounts(counts);
+    }
+  }
+  const filtered = cantieri.filter(c =>
+    (c.nome_cliente||'').toLowerCase().includes(search.toLowerCase()) ||
+    (c.indirizzo||'').toLowerCase().includes(search.toLowerCase())
+  );
+  return (
+    <>
+      <div className="header">
+        <span className="header-title">📁 Cantieri</span>
+        <span className="header-badge">{session.role==='admin'?'ADMIN':session.squadra?.codice}</span>
+      </div>
+      <div className="main">
+        <div className="search-bar">
+          <span className="icon">🔍</span>
+          <input placeholder="Cerca cantiere o cliente..." value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+        <div className="section-head">
+          <span className="section-title">Tutti i cantieri</span>
+          <span className="section-count">{filtered.length} cantieri</span>
+        </div>
+        {loading ? (
+          <div className="loading-wrap"><div className="loader spin"/><p style={{color:'var(--muted)',fontSize:13}}>Caricamento...</p></div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state"><div className="icon">🏗️</div><p>Nessun cantiere trovato</p></div>
+        ) : filtered.map((c,i) => (
+          <div key={c.id} className="cantiere-card fade-up" style={{animationDelay:`${i*.05}s`}} onClick={()=>onSelect(c)}>
+            <div className="cantiere-icon">⚡</div>
+            <div className="cantiere-info">
+              <div className="cantiere-name">{c.nome_cliente || 'Cliente N/D'}</div>
+              <div className="cantiere-meta">
+                {c.kwp && <span className="meta-chip green">{c.kwp} kWp</span>}
+                {c.kwh_accumulo && <span className="meta-chip">{c.kwh_accumulo} kWh</span>}
+                {c.indirizzo && <span className="meta-chip">{c.indirizzo}</span>}
+              </div>
+            </div>
+            {docCounts[c.id] ? <span className="doc-count-badge">{docCounts[c.id]} doc</span> : null}
+            <span className="cantiere-arrow">›</span>
+          </div>
+        ))}
+        {session.role==='admin' && (
+          <button className="add-btn" onClick={()=>setShowAdd(true)}>+ NUOVO CANTIERE</button>
+        )}
+      </div>
+      {showAdd && <NuovoCantiereModal onClose={()=>setShowAdd(false)} onSaved={fetchCantieri}/>}
+    </>
+  );
+}
+
+function NuovoCantiereModal({ onClose, onSaved }) {
+  const [form, setForm] = useState({ nome_cliente:'', indirizzo:'', kwp:'', kwh_accumulo:'' });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  async function save() {
+    if (!form.nome_cliente.trim()) { setErr('Nome cliente obbligatorio'); return; }
+    setSaving(true);
+    const { error } = await supabase.from('cantieri').insert([{
+      nome_cliente: form.nome_cliente.trim(),
+      indirizzo: form.indirizzo.trim() || null,
+      kwp: form.kwp ? parseFloat(form.kwp) : null,
+      kwh_accumulo: form.kwh_accumulo ? parseFloat(form.kwh_accumulo) : null,
+    }]);
+    if (error) { setErr('Errore: ' + error.message); setSaving(false); return; }
+    onSaved(); onClose();
+  }
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-sheet">
+        <div className="modal-handle"/>
+        <div className="modal-title">Nuovo Cantiere</div>
+        <div className="modal-sub">Aggiungi un cantiere al sistema</div>
+        <div className="inp-wrap" style={{marginBottom:12}}>
+          <label>Cliente *</label>
+          <input className="inp-text" placeholder="Nome cliente" value={form.nome_cliente} onChange={e=>setForm({...form,nome_cliente:e.target.value})}/>
+        </div>
+        <div className="inp-wrap" style={{marginBottom:12}}>
+          <label>Indirizzo</label>
+          <input className="inp-text" placeholder="Via, Città" value={form.indirizzo} onChange={e=>setForm({...form,indirizzo:e.target.value})}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+          <div className="inp-wrap"><label>kWp</label><input className="inp-text" type="number" placeholder="es. 6.5" value={form.kwp} onChange={e=>setForm({...form,kwp:e.target.value})}/></div>
+          <div className="inp-wrap"><label>kWh accumulo</label><input className="inp-text" type="number" placeholder="es. 10" value={form.kwh_accumulo} onChange={e=>setForm({...form,kwh_accumulo:e.target.value})}/></div>
+        </div>
+        {err && <div className="error-msg" style={{marginBottom:12}}>⚠️ {err}</div>}
+        <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Salvataggio...':'SALVA CANTIERE'}</button>
+        <button onClick={onClose} style={{width:'100%',padding:14,marginTop:8,color:'var(--muted)',fontSize:14}}>Annulla</button>
+      </div>
+    </div>
+  );
+}
+
+function CantiereDetail({ cantiere, session, onBack, showToast }) {
+  const [fase, setFase] = useState('Installazione');
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
+  const [viewer, setViewer] = useState(null);
+  useEffect(() => { fetchDocs(); }, [fase]);
+  async function fetchDocs() {
+    setLoading(true);
+    const { data } = await supabase.from('documenti_cantiere').select('*').eq('cantiere_id', cantiere.id).eq('fase', fase).order('created_at', { ascending: false });
+    setDocs(data || []);
+    setLoading(false);
+  }
+  async function deleteDoc(doc) {
+    if (!confirm(`Eliminare "${doc.nome}"?`)) return;
+    if (doc.storage_path) await supabase.storage.from(BUCKET).remove([doc.storage_path]);
+    await supabase.from('documenti_cantiere').delete().eq('id', doc.id);
+    showToast('Documento eliminato','success');
+    fetchDocs();
+  }
+  function docIcon(tipo) {
+    if (tipo==='foto') return '📷'; if (tipo==='scan_pdf') return '📑'; if (tipo==='pdf') return '📄'; return '📎';
+  }
+  function fmtDate(str) {
+    if (!str) return '';
+    return new Date(str).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+  return (
+    <>
+      <div className="header">
+        <button className="header-back" onClick={onBack}>‹</button>
+        <span className="header-title">{cantiere.nome_cliente}</span>
+        {cantiere.kwp && <span className="header-badge">{cantiere.kwp} kWp</span>}
+      </div>
+      <div className="main">
+        {cantiere.indirizzo && <div style={{padding:'10px 16px 0',fontSize:12,color:'var(--muted)'}}>📍 {cantiere.indirizzo}</div>}
+        <div className="fase-nav">
+          {FASI.map(f => <button key={f} className={`fase-tab ${fase===f?'active':''}`} onClick={()=>setFase(f)}>{f}</button>)}
+        </div>
+        <div className="fase-body">
+          {loading ? (
+            <div className="loading-wrap" style={{padding:'28px 0'}}><div className="loader spin"/></div>
+          ) : docs.length === 0 ? (
+            <div className="empty-state"><div className="icon">📂</div><p>Nessun documento per <strong style={{color:'var(--text)'}}>{fase}</strong><br/>Usa + per aggiungerne</p></div>
+          ) : docs.map((doc,i) => (
+            <div key={doc.id} className="doc-item fade-up" style={{animationDelay:`${i*.04}s`}}>
+              <div className="doc-thumb" onClick={()=>setViewer(doc)}>
+                {doc.tipo==='foto'&&doc.url ? <img src={doc.url} alt={doc.nome} onError={e=>e.target.style.display='none'}/> : docIcon(doc.tipo)}
+              </div>
+              <div className="doc-info" onClick={()=>setViewer(doc)}>
+                <div className="doc-name">{doc.nome}</div>
+                <div className="doc-sub">{doc.tipo?.toUpperCase()} · {fmtDate(doc.created_at)}</div>
+                {doc.uploaded_by && <div className="doc-sub">👤 {doc.uploaded_by}</div>}
+              </div>
+              <div className="doc-actions">
+                <a href={doc.url} download={doc.nome} target="_blank" rel="noreferrer"><div className="doc-btn">⬇️</div></a>
+                {session.role==='admin' && <button className="doc-btn" onClick={()=>deleteDoc(doc)} style={{color:'var(--danger)'}}>🗑️</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <button className="fab" onClick={()=>setShowUpload(true)}>+</button>
+      {showUpload && <UploadModal cantiere={cantiere} fase={fase} session={session} onClose={()=>setShowUpload(false)} onUploaded={()=>{ fetchDocs(); showToast('Documento caricato ✓','success'); }} showToast={showToast}/>}
+      {viewer && <Viewer doc={viewer} onClose={()=>setViewer(null)}/>}
+    </>
+  );
+}
+
+function Viewer({ doc, onClose }) {
+  const isImg = doc.tipo==='foto' || /\.(jpg|jpeg|png|gif|webp)/i.test(doc.url||'');
+  const isPdf = doc.tipo==='pdf' || doc.tipo==='scan_pdf' || /\.pdf$/i.test(doc.url||'');
+  return (
+    <div className="viewer-overlay">
+      <div className="viewer-header">
+        <button className="viewer-close" onClick={onClose}>✕</button>
+        <div className="viewer-title">{doc.nome}</div>
+        <a href={doc.url} download={doc.nome} target="_blank" rel="noreferrer" style={{color:'#fff',fontSize:20}}>⬇️</a>
+      </div>
+      <div className="viewer-body">
+        {isImg ? <img src={doc.url} alt={doc.nome}/> : isPdf ? <iframe src={doc.url} title={doc.nome}/> :
+        <div style={{textAlign:'center',color:'#666',padding:40}}>
+          <div style={{fontSize:48}}>📎</div>
+          <p style={{marginTop:12,fontSize:14}}>Anteprima non disponibile</p>
+          <a href={doc.url} target="_blank" rel="noreferrer" style={{color:'var(--green)'}}>Apri file →</a>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+function UploadModal({ cantiere, fase, session, onClose, onUploaded, showToast }) {
+  const [mode, setMode] = useState(null);
+  const [nome, setNome] = useState('');
+  const [faseOvr, setFaseOvr] = useState(fase);
+  const [progress, setProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [scanPhotos, setScanPhotos] = useState([]);
+  const fileRef = useRef(); const cameraRef = useRef(); const scanRef = useRef();
+  function genPath(ext) { return `${cantiere.id}/${faseOvr}/${Date.now()}.${ext}`; }
+  async function uploadFile(file, tipo, displayName) {
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const path = genPath(ext);
+    setUploading(true); setProgress(10);
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+    if (error) { showToast('Errore upload: ' + error.message,'error'); setUploading(false); return; }
+    setProgress(70);
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { error: dbErr } = await supabase.from('documenti_cantiere').insert([{
+      cantiere_id: cantiere.id, squadra_id: session.role==='squadra' ? session.squadra.id : null,
+      nome: displayName || file.name, tipo, fase: faseOvr, url: publicUrl, storage_path: path,
+      uploaded_by: session.role==='admin' ? 'Admin' : session.squadra?.codice,
+    }]);
+    setProgress(100);
+    if (dbErr) { showToast('Errore DB: ' + dbErr.message,'error'); } else { onUploaded(); onClose(); }
+    setUploading(false);
+  }
+  async function handleFileSelect(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const tipo = file.type.startsWith('image/') ? 'foto' : file.type==='application/pdf' ? 'pdf' : 'documento';
+    await uploadFile(file, tipo, nome || file.name);
+  }
+  async function handleCameraCapture(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    await uploadFile(file, 'foto', nome || `Foto_${new Date().toLocaleDateString('it-IT').replace(/\//g,'-')}.jpg`);
+  }
+  function addScanPhoto(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setScanPhotos(prev => [...prev, { file, url: URL.createObjectURL(file) }]);
+    e.target.value = '';
+  }
+  function removeScanPhoto(i) {
+    setScanPhotos(prev => { URL.revokeObjectURL(prev[i].url); return prev.filter((_,j)=>j!==i); });
+  }
+  async function buildScanPdf() {
+    if (!scanPhotos.length) { showToast('Aggiungi almeno una foto','error'); return; }
+    setUploading(true); setProgress(5);
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = pdf.internal.pageSize.getWidth(); const H = pdf.internal.pageSize.getHeight();
+    for (let i=0; i<scanPhotos.length; i++) {
+      if (i>0) pdf.addPage();
+      setProgress(5 + Math.round((i/scanPhotos.length)*55));
+      const dataUrl = await new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(scanPhotos[i].file); });
+      const img = new Image();
+      await new Promise(res => { img.onload=res; img.src=dataUrl; });
+      const aspect = img.width/img.height;
+      let w=W-20, h=w/aspect;
+      if (h>H-20) { h=H-20; w=h*aspect; }
+      pdf.addImage(dataUrl,'JPEG',(W-w)/2,(H-h)/2,w,h);
+    }
+    setProgress(65);
+    const displayName = nome || `Scansione_${new Date().toLocaleDateString('it-IT').replace(/\//g,'-')}.pdf`;
+    await uploadFile(new File([pdf.output('blob')], displayName, {type:'application/pdf'}), 'scan_pdf', displayName);
+  }
+  if (uploading) return (
+    <div className="modal-overlay">
+      <div className="modal-sheet">
+        <div className="modal-handle"/>
+        <div className="modal-title">Caricamento in corso</div>
+        <div className="modal-sub">Non chiudere l'app...</div>
+        <div className="progress-bar"><div className="progress-fill" style={{width:`${progress}%`}}/></div>
+        <p style={{textAlign:'center',marginTop:16,color:'var(--muted)',fontSize:13}}>{progress}%</p>
+      </div>
+    </div>
+  );
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-sheet">
+        <div className="modal-handle"/>
+        <div className="modal-title">Aggiungi documento</div>
+        <div className="modal-sub">{cantiere.nome_cliente}</div>
+        <div className="inp-wrap" style={{marginBottom:14}}>
+          <label>Fase</label>
+          <select className="inp-select" value={faseOvr} onChange={e=>setFaseOvr(e.target.value)}>
+            {FASI.map(f=><option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+        {mode && <div className="inp-wrap" style={{marginBottom:14}}><label>Nome documento (opzionale)</label><input className="inp-text" placeholder="Lascia vuoto per nome automatico" value={nome} onChange={e=>setNome(e.target.value)}/></div>}
+        {!mode && (
+          <div className="upload-grid">
+            <div className="upload-opt" onClick={()=>{ setMode('foto'); setTimeout(()=>cameraRef.current?.click(),80); }}>
+              <span className="opt-icon">📷</span><span className="opt-label">Scatta Foto</span><span className="opt-sub">Usa la fotocamera</span>
+            </div>
+            <div className="upload-opt" onClick={()=>{ setMode('file'); setTimeout(()=>fileRef.current?.click(),80); }}>
+              <span className="opt-icon">📁</span><span className="opt-label">Carica File</span><span className="opt-sub">PDF, foto, doc...</span>
+            </div>
+            <div className="upload-opt full-width" onClick={()=>setMode('scan')}>
+              <span className="opt-icon">📑</span>
+              <div><div className="opt-label">Scan → PDF</div><div className="opt-sub">Più foto unite in un PDF A4</div></div>
+            </div>
+          </div>
+        )}
+        {mode==='scan' && (
+          <>
+            <div className="scan-preview">
+              {scanPhotos.map((p,i)=>(
+                <div key={i} className="scan-thumb">
+                  <img src={p.url} alt={`pag ${i+1}`}/>
+                  <button className="del-btn" onClick={()=>removeScanPhoto(i)}>✕</button>
+                </div>
+              ))}
+              <button className="scan-add" onClick={()=>scanRef.current?.click()}><span className="plus">+</span><span>Foto</span></button>
+            </div>
+            <p style={{fontSize:11,color:'var(--muted)',marginBottom:14,fontFamily:'var(--font-mono)'}}>{scanPhotos.length} pagine · verranno unite in PDF A4</p>
+            <button className="btn-primary" onClick={buildScanPdf} disabled={!scanPhotos.length}>📄 GENERA PDF ({scanPhotos.length} pag.)</button>
+            <input ref={scanRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={addScanPhoto}/>
+          </>
+        )}
+        {mode && mode!=='scan' && <button onClick={()=>{setMode(null);setNome('');}} style={{color:'var(--muted)',fontSize:13,padding:'8px 0'}}>← Indietro</button>}
+        <input ref={fileRef}   type="file" accept="*/*"     style={{display:'none'}} onChange={handleFileSelect}/>
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleCameraCapture}/>
+        <button onClick={onClose} style={{width:'100%',padding:12,marginTop:10,color:'var(--muted)',fontSize:14}}>Annulla</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [session, setSession] = useState(() => { try { return JSON.parse(sessionStorage.getItem('ang_docs_session')); } catch { return null; } });
+  const [selected, setSelected] = useState(null);
+  const [toast, setToast] = useState(null);
+  function login(s) { sessionStorage.setItem('ang_docs_session', JSON.stringify(s)); setSession(s); }
+  function logout() { sessionStorage.removeItem('ang_docs_session'); setSession(null); setSelected(null); }
+  function showToast(msg, type='success') { setToast({ msg, type, key: Date.now() }); }
+  if (!session) return <Login onLogin={login}/>;
+  return (
+    <>
+      {selected ? <CantiereDetail cantiere={selected} session={session} onBack={()=>setSelected(null)} showToast={showToast}/> : <CantiereLista session={session} onSelect={setSelected}/>}
+      <div className="bottom-nav">
+        <div className="nav-item active"><span className="nav-icon">🏗️</span><span className="nav-label">CANTIERI</span></div>
+        <div className="nav-item" onClick={logout}><span className="nav-icon">🔓</span><span className="nav-label">ESCI</span></div>
+      </div>
+      {toast && <Toast key={toast.key} msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
