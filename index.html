@@ -255,11 +255,9 @@ function CantiereLista({ session, onSelect }) {
   useEffect(() => { fetchCantieri(); }, []);
   async function fetchCantieri() {
     setLoading(true);
-    let q = supabase.from('cantieri').select('*').order('created_at', { ascending: false });
+    let q = supabase.from('cantieri').select('*').order('id', { ascending: false });
     if (session.role === 'squadra') {
-      const { data: asgn } = await supabase.from('assegnazioni_cantieri').select('cantiere_id').eq('squadra_id', session.squadra.id);
-      if (asgn?.length) { q = q.in('id', asgn.map(a => a.cantiere_id)); }
-      else { setCantieri([]); setLoading(false); return; }
+      q = q.eq('squadra_id', session.squadra.id);
     }
     const { data } = await q;
     if (data) { setCantieri(data); fetchDocCounts(data.map(c => c.id)); }
@@ -300,11 +298,10 @@ function CantiereLista({ session, onSelect }) {
           <div key={c.id} className="cantiere-card fade-up" style={{animationDelay:`${i*.05}s`}} onClick={()=>onSelect(c)}>
             <div className="cantiere-icon">⚡</div>
             <div className="cantiere-info">
-              <div className="cantiere-name">{c.nome_cliente || 'Cliente N/D'}</div>
+              <div className="cantiere-name">{c.cliente || 'Cliente N/D'}</div>
               <div className="cantiere-meta">
-                {c.kwp && <span className="meta-chip green">{c.kwp} kWp</span>}
-                {c.kwh_accumulo && <span className="meta-chip">{c.kwh_accumulo} kWh</span>}
-                {c.indirizzo && <span className="meta-chip">{c.indirizzo}</span>}
+                {c.kw && <span className="meta-chip green">{c.kw} kW</span>}
+                {c.acc && <span className="meta-chip">{c.acc} kWh</span>}
               </div>
             </div>
             {docCounts[c.id] ? <span className="doc-count-badge">{docCounts[c.id]} doc</span> : null}
@@ -321,17 +318,16 @@ function CantiereLista({ session, onSelect }) {
 }
 
 function NuovoCantiereModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ nome_cliente:'', indirizzo:'', kwp:'', kwh_accumulo:'' });
+  const [form, setForm] = useState({ cliente:'', kw:'', acc:'' });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   async function save() {
-    if (!form.nome_cliente.trim()) { setErr('Nome cliente obbligatorio'); return; }
+    if (!form.cliente.trim()) { setErr('Nome cliente obbligatorio'); return; }
     setSaving(true);
     const { error } = await supabase.from('cantieri').insert([{
-      nome_cliente: form.nome_cliente.trim(),
-      indirizzo: form.indirizzo.trim() || null,
-      kwp: form.kwp ? parseFloat(form.kwp) : null,
-      kwh_accumulo: form.kwh_accumulo ? parseFloat(form.kwh_accumulo) : null,
+      cliente: form.cliente.trim(),
+      kw: form.kw || null,
+      acc: form.acc || null,
     }]);
     if (error) { setErr('Errore: ' + error.message); setSaving(false); return; }
     onSaved(); onClose();
@@ -344,15 +340,11 @@ function NuovoCantiereModal({ onClose, onSaved }) {
         <div className="modal-sub">Aggiungi un cantiere al sistema</div>
         <div className="inp-wrap" style={{marginBottom:12}}>
           <label>Cliente *</label>
-          <input className="inp-text" placeholder="Nome cliente" value={form.nome_cliente} onChange={e=>setForm({...form,nome_cliente:e.target.value})}/>
-        </div>
-        <div className="inp-wrap" style={{marginBottom:12}}>
-          <label>Indirizzo</label>
-          <input className="inp-text" placeholder="Via, Città" value={form.indirizzo} onChange={e=>setForm({...form,indirizzo:e.target.value})}/>
+          <input className="inp-text" placeholder="Nome cliente" value={form.cliente} onChange={e=>setForm({...form,cliente:e.target.value})}/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
-          <div className="inp-wrap"><label>kWp</label><input className="inp-text" type="number" placeholder="es. 6.5" value={form.kwp} onChange={e=>setForm({...form,kwp:e.target.value})}/></div>
-          <div className="inp-wrap"><label>kWh accumulo</label><input className="inp-text" type="number" placeholder="es. 10" value={form.kwh_accumulo} onChange={e=>setForm({...form,kwh_accumulo:e.target.value})}/></div>
+          <div className="inp-wrap"><label>kW</label><input className="inp-text" type="number" placeholder="es. 6.5" value={form.kw} onChange={e=>setForm({...form,kw:e.target.value})}/></div>
+          <div className="inp-wrap"><label>Accumulo kWh</label><input className="inp-text" type="number" placeholder="es. 10" value={form.acc} onChange={e=>setForm({...form,acc:e.target.value})}/></div>
         </div>
         {err && <div className="error-msg" style={{marginBottom:12}}>⚠️ {err}</div>}
         <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Salvataggio...':'SALVA CANTIERE'}</button>
@@ -393,11 +385,11 @@ function CantiereDetail({ cantiere, session, onBack, showToast }) {
     <>
       <div className="header">
         <button className="header-back" onClick={onBack}>‹</button>
-        <span className="header-title">{cantiere.nome_cliente}</span>
-        {cantiere.kwp && <span className="header-badge">{cantiere.kwp} kWp</span>}
+        <span className="header-title">{cantiere.cliente}</span>
+        {cantiere.kw && <span className="header-badge">{cantiere.kw} kW</span>}
       </div>
       <div className="main">
-        {cantiere.indirizzo && <div style={{padding:'10px 16px 0',fontSize:12,color:'var(--muted)'}}>📍 {cantiere.indirizzo}</div>}
+        {cantiere.acc && <div style={{padding:'10px 16px 0',fontSize:12,color:'var(--muted)'}}>🔋 Accumulo: {cantiere.acc} kWh</div>}
         <div className="fase-nav">
           {FASI.map(f => <button key={f} className={`fase-tab ${fase===f?'active':''}`} onClick={()=>setFase(f)}>{f}</button>)}
         </div>
@@ -532,7 +524,7 @@ function UploadModal({ cantiere, fase, session, onClose, onUploaded, showToast }
       <div className="modal-sheet">
         <div className="modal-handle"/>
         <div className="modal-title">Aggiungi documento</div>
-        <div className="modal-sub">{cantiere.nome_cliente}</div>
+        <div className="modal-sub">{cantiere.cliente}</div>
         <div className="inp-wrap" style={{marginBottom:14}}>
           <label>Fase</label>
           <select className="inp-select" value={faseOvr} onChange={e=>setFaseOvr(e.target.value)}>
