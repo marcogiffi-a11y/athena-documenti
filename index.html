@@ -357,12 +357,12 @@ function CantiereLista({ session, onSelectCantiere, onSelectOfferta }) {
           </>
         )}
 
-        {session.role === 'admin' && (
-          <div style={{padding:'8px 0 20px'}}>
+        <div style={{padding:'8px 0 20px'}}>
+          {session.role === 'admin' && (
             <button className="add-btn" onClick={()=>setShowAdd(true)}>+ NUOVO CANTIERE DA AVVIARE</button>
-            <button className="add-btn offerta-btn" onClick={()=>setShowOfferta(true)}>📋 NUOVA RICHIESTA DI OFFERTA</button>
-          </div>
-        )}
+          )}
+          <button className="add-btn offerta-btn" onClick={()=>setShowOfferta(true)}>📋 NUOVA RICHIESTA DI OFFERTA</button>
+        </div>
       </div>
 
       {showAdd && <NuovoCantiereModal onClose={()=>setShowAdd(false)} onSaved={fetchAll}/>}
@@ -425,6 +425,7 @@ function NuovaOffertaModal({ onClose, onSaved }) {
       impianto_esistente: form.impianto_esistente,
       potenza_esistente_kw: form.impianto_esistente ? (form.potenza_esistente_kw||null) : null,
       contatore_prelievo_kw: form.contatore_prelievo_kw||null,
+      stato: 'nuova',
     }]).select().single();
     if (error) { setErr('Errore: '+error.message); setSaving(false); return; }
     setSavedId(data.id);
@@ -484,14 +485,14 @@ function NuovaOffertaModal({ onClose, onSaved }) {
             )}
             <div className="field-group"><div className="field-label">Disponibilità contatore in prelievo</div><input className="inp-field" type="number" placeholder="kW disponibili" value={form.contatore_prelievo_kw} onChange={e=>setForm({...form,contatore_prelievo_kw:e.target.value})}/></div>
             {err && <div className="error-msg" style={{marginBottom:12}}>⚠️ {err}</div>}
-            <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Salvataggio...':'SALVA RICHIESTA'}</button>
+            <button className="btn-primary" onClick={save} disabled={saving}>{saving?'Invio in corso...':'📤 INVIA RICHIESTA'}</button>
             <button onClick={onClose} style={{width:'100%',padding:14,marginTop:8,color:'var(--muted)',fontSize:14}}>Annulla</button>
           </>
         ) : (
           <>
             <div style={{background:'var(--green-bg)',border:'1px solid var(--green-border)',borderRadius:'var(--radius)',padding:16,marginBottom:20}}>
-              <p style={{fontSize:13,color:'var(--green)',fontWeight:600,marginBottom:4}}>✓ Richiesta salvata!</p>
-              <p style={{fontSize:12,color:'#a8e060'}}>Vuoi aggiungere materiale del sopralluogo?</p>
+              <p style={{fontSize:13,color:'var(--green)',fontWeight:600,marginBottom:4}}>✓ Richiesta inviata al gestionale!</p>
+              <p style={{fontSize:12,color:'#a8e060'}}>Visibile su ANG Gest → Richieste di Offerta. Vuoi aggiungere materiale del sopralluogo?</p>
             </div>
             <button className="btn-primary" onClick={()=>setShowUpload(true)} style={{marginBottom:10}}>📷 AGGIUNGI MATERIALE SOPRALLUOGO</button>
             <button onClick={()=>{ onSaved(); onClose(); }} style={{width:'100%',padding:14,color:'var(--muted)',fontSize:14}}>Salta, aggiungi dopo</button>
